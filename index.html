@@ -1,0 +1,318 @@
+<!doctype html><html lang="ar" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no"><title>الدودة الجائعة</title><style>html,body{margin:0;height:100%;background:#101014;overflow:hidden}#app{height:100%}</style></head><body><div id="app"></div><script>const SKINS = [
+  { name: 'العنكبوت الأحمر', c1: '#d8222f', c2: '#2a4fd0', dark: '#7a0f18', pat: 'web' },
+  { name: 'فينوم', c1: '#17171c', c2: '#2b2b34', dark: '#050507', pat: 'goo', big: true },
+  { name: 'مايلز', c1: '#1c1c24', c2: '#e01e46', dark: '#08080c', pat: 'band' },
+  { name: 'جوست', c1: '#f2f2f7', c2: '#e8479d', dark: '#9a9aae', pat: 'band' },
+  { name: 'كارنيج', c1: '#8f1d18', c2: '#1a1a1e', dark: '#4a0b09', pat: 'vein' },
+  { name: 'الجوبلين', c1: '#23913f', c2: '#8a45d8', dark: '#0f4b21', pat: 'band' },
+];
+const THEMES = [
+  { bg: '#7a4650', a: '#86525c', b: '#6c3d47' },
+  { bg: '#101014', a: '#1a1a20', b: '#0b0b0e' },
+  { bg: '#9a8296', a: '#a48ca0', b: '#8e7690' },
+  { bg: '#1d4f9a', a: '#2559ab', b: '#174488' },
+  { bg: '#4b8a3c', a: '#559846', b: '#417b34' },
+  { bg: '#4a3a86', a: '#54438f', b: '#3f3179' },
+];
+const NAMES = ['زغلول', 'كوكي', 'سوسن', 'فلفل', 'بومة', 'سكر', 'لولو', 'تمساح', 'نمنم', 'برقوق', 'قمر', 'عسل'];
+const WORLD = 3200, MARGIN = 110, FOOD_N = 400, BOTS = 11, ROUND = 600;
+const R = (a, b) => a + Math.random() * (b - a);
+const C = (v, a, b) => Math.max(a, Math.min(b, v));
+
+function mk(w, h, fn) { const c = document.createElement('canvas'); c.width = w; c.height = h; fn(c.getContext('2d'), w, h); return c; }
+function eyes(x, ctx, cx, cy, s) {
+  for (const sd of [-1, 1]) {
+    ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.ellipse(cx + sd * s * 0.42, cy, s * 0.32, s * 0.4, 0, 0, 7); ctx.fill();
+    ctx.fillStyle = '#16161e'; ctx.beginPath(); ctx.arc(cx + sd * s * 0.42, cy + s * 0.06, s * 0.16, 0, 7); ctx.fill();
+    ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(cx + sd * s * 0.42 - s * 0.05, cy - s * 0.04, s * 0.05, 0, 7); ctx.fill();
+  }
+}
+function sprites() {
+  const S = 64, out = [];
+  const blob = (col, dk, horn) => mk(S, S, (c) => {
+    c.fillStyle = dk; c.beginPath(); c.ellipse(32, 36, 24, 22, 0, 0, 7); c.fill();
+    c.fillStyle = col; c.beginPath(); c.ellipse(32, 33, 23, 21, 0, 0, 7); c.fill();
+    c.fillStyle = 'rgba(255,255,255,.35)'; c.beginPath(); c.ellipse(24, 22, 9, 5, -0.5, 0, 7); c.fill();
+    if (horn) { c.fillStyle = dk; for (const s of [-1, 1]) { c.beginPath(); c.moveTo(32 + s * 10, 15); c.lineTo(32 + s * 18, 3); c.lineTo(32 + s * 19, 17); c.fill(); } }
+    eyes(0, c, 32, 30, 22);
+    c.strokeStyle = dk; c.lineWidth = 2.5; c.lineCap = 'round'; c.beginPath(); c.arc(32, 41, 6, 0.2, Math.PI - 0.2); c.stroke();
+  });
+  out.push(blob('#7ee05a', '#3c8e2a'), blob('#ff7b5c', '#b53d27', true), blob('#c35cf0', '#6d2b9a'), blob('#4fd6e6', '#1f8794'), blob('#ff6fae', '#b8326f', true), blob('#ffd44d', '#b8871a'));
+  out.push(mk(S, S, (c) => { c.fillStyle = '#c92a2a'; c.beginPath(); c.arc(32, 38, 22, 0, 7); c.fill(); c.fillStyle = 'rgba(255,255,255,.4)'; c.beginPath(); c.ellipse(23, 28, 7, 4, -0.6, 0, 7); c.fill(); c.fillStyle = '#3f9a2f'; c.beginPath(); c.ellipse(36, 13, 11, 5, -0.5, 0, 7); c.fill(); c.strokeStyle = '#5a3a1a'; c.lineWidth = 3; c.beginPath(); c.moveTo(32, 18); c.lineTo(31, 8); c.stroke(); }));
+  out.push(mk(S, S, (c) => { for (const x of [22, 42]) { c.strokeStyle = '#3f8a2f'; c.lineWidth = 2.5; c.beginPath(); c.moveTo(x, 40); c.quadraticCurveTo(32, 8, 36, 6); c.stroke(); c.fillStyle = '#d62839'; c.beginPath(); c.arc(x, 44, 12, 0, 7); c.fill(); c.fillStyle = 'rgba(255,255,255,.45)'; c.beginPath(); c.arc(x - 4, 40, 3.5, 0, 7); c.fill(); } }));
+  out.push(mk(S, S, (c) => { c.fillStyle = '#e7a81e'; c.beginPath(); c.moveTo(6, 46); c.lineTo(54, 18); c.lineTo(58, 46); c.closePath(); c.fill(); c.fillStyle = '#ffd24a'; c.beginPath(); c.moveTo(6, 46); c.lineTo(54, 18); c.lineTo(54, 30); c.lineTo(10, 54); c.closePath(); c.fill(); c.fillStyle = '#d19015'; for (const [x, y, r] of [[32, 36, 4], [44, 30, 3], [22, 44, 3]]) { c.beginPath(); c.arc(x, y, r, 0, 7); c.fill(); } }));
+  out.push(mk(S, S, (c) => { c.fillStyle = '#a8651f'; c.beginPath(); c.ellipse(32, 34, 25, 18, 0, 0, 7); c.fill(); c.fillStyle = '#e5a548'; c.beginPath(); c.ellipse(32, 31, 22, 15, 0, 0, 7); c.fill(); c.strokeStyle = '#b87326'; c.lineWidth = 2.5; for (const x of [20, 32, 44]) { c.beginPath(); c.moveTo(x - 3, 22); c.lineTo(x + 3, 40); c.stroke(); } }));
+  out.push(mk(S, S, (c) => { c.fillStyle = '#e55c1a'; c.beginPath(); c.ellipse(32, 38, 24, 19, 0, 0, 7); c.fill(); c.strokeStyle = '#a63c08'; c.lineWidth = 2; for (const dx of [-12, -4, 4, 12]) { c.beginPath(); c.ellipse(32 + dx, 38, 5, 18, 0, 0, 7); c.stroke(); } c.fillStyle = '#3f8a2f'; c.fillRect(29, 12, 6, 10); }));
+  return out;
+}
+function makeCoin() { return mk(64, 64, (c) => { const g = c.createRadialGradient(28, 26, 4, 32, 32, 30); g.addColorStop(0, '#fff3a0'); g.addColorStop(1, '#e39a0c'); c.fillStyle = g; c.beginPath(); c.arc(32, 32, 28, 0, 7); c.fill(); c.strokeStyle = '#b8700a'; c.lineWidth = 4; c.stroke(); c.strokeStyle = '#c47c10'; c.lineWidth = 3; c.beginPath(); c.arc(32, 32, 20, 0, 7); c.stroke(); c.fillStyle = '#b8700a'; c.beginPath(); c.arc(25, 27, 3, 0, 7); c.arc(39, 27, 3, 0, 7); c.fill(); c.lineWidth = 3; c.lineCap = 'round'; c.beginPath(); c.arc(32, 33, 9, 0.2, Math.PI - 0.2); c.stroke(); }); }
+function makePotion() { return mk(64, 64, (c) => { c.fillStyle = 'rgba(190,230,255,.55)'; c.strokeStyle = '#cfeaff'; c.lineWidth = 3; c.beginPath(); c.moveTo(26, 8); c.lineTo(38, 8); c.lineTo(38, 24); c.lineTo(54, 54); c.lineTo(10, 54); c.lineTo(26, 24); c.closePath(); c.fill(); c.stroke(); c.fillStyle = '#7a3ae0'; c.beginPath(); c.moveTo(20, 40); c.lineTo(44, 40); c.lineTo(50, 52); c.lineTo(14, 52); c.closePath(); c.fill(); c.fillStyle = '#8a5a2a'; c.fillRect(25, 3, 14, 7); }); }
+
+function wormColor(sk, i) {
+  if (sk.pat === 'band') return Math.floor(i / 3) % 2 ? sk.c2 : sk.c1;
+  return sk.c1;
+}
+function drawWorm(ctx, pts, r, sk, heading, t) {
+  const n = pts.length;
+  ctx.lineJoin = 'round';
+  for (let i = n - 1; i >= 0; i--) {
+    const p = pts[i], k = 1 - (i / n) * 0.25, rr = r * (i === 0 ? 1.08 : k);
+    ctx.fillStyle = sk.dark; ctx.beginPath(); ctx.arc(p.x, p.y + 1.5, rr + 1.5, 0, 7); ctx.fill();
+    ctx.fillStyle = wormColor(sk, i); ctx.beginPath(); ctx.arc(p.x, p.y, rr, 0, 7); ctx.fill();
+    ctx.fillStyle = 'rgba(255,255,255,.18)'; ctx.beginPath(); ctx.arc(p.x - rr * 0.25, p.y - rr * 0.3, rr * 0.55, 0, 7); ctx.fill();
+    if (i > 0 && i % 4 === 2) {
+      if (sk.pat === 'web') { ctx.strokeStyle = 'rgba(255,255,255,.55)'; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.arc(p.x, p.y, rr * 0.6, 0, 7); ctx.moveTo(p.x - rr, p.y); ctx.lineTo(p.x + rr, p.y); ctx.moveTo(p.x, p.y - rr); ctx.lineTo(p.x, p.y + rr); ctx.stroke(); }
+      else if (sk.pat === 'goo') { ctx.fillStyle = 'rgba(255,255,255,.75)'; ctx.beginPath(); ctx.arc(p.x + rr * 0.3, p.y, rr * 0.22, 0, 7); ctx.fill(); }
+      else if (sk.pat === 'vein') { ctx.fillStyle = sk.c2; ctx.beginPath(); ctx.arc(p.x, p.y, rr * 0.35, 0, 7); ctx.fill(); }
+      else if (sk.pat === 'band') { ctx.fillStyle = 'rgba(0,0,0,.18)'; ctx.beginPath(); ctx.arc(p.x, p.y, rr * 0.3, 0, 7); ctx.fill(); }
+    }
+  }
+  const h = pts[0], hr = r * 1.1, fx = Math.cos(heading), fy = Math.sin(heading), px = -fy, py = fx;
+  if (sk.pat === 'web') { ctx.fillStyle = sk.c2; ctx.beginPath(); ctx.arc(h.x, h.y, hr * 0.98, 0, 7); ctx.fill(); ctx.fillStyle = sk.c1; ctx.beginPath(); ctx.arc(h.x - fx * hr * 0.2, h.y - fy * hr * 0.2, hr * 0.8, 0, 7); ctx.fill(); }
+  for (const sd of [-1, 1]) {
+    const ex = h.x + fx * hr * 0.4 + px * sd * hr * 0.5, ey = h.y + fy * hr * 0.4 + py * sd * hr * 0.5;
+    ctx.fillStyle = '#fff';
+    if (sk.big) { ctx.beginPath(); ctx.ellipse(ex, ey, hr * 0.5, hr * 0.7, heading + sd * 0.55, 0, 7); ctx.fill(); }
+    else {
+      ctx.beginPath(); ctx.arc(ex, ey, hr * 0.42, 0, 7); ctx.fill();
+      ctx.fillStyle = '#14141c'; ctx.beginPath(); ctx.arc(ex + fx * hr * 0.14, ey + fy * hr * 0.14, hr * 0.2, 0, 7); ctx.fill();
+    }
+  }
+  if (!sk.big) { ctx.strokeStyle = sk.pat === 'band' && sk.c1 === '#f2f2f7' ? '#333' : 'rgba(255,255,255,.9)'; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(h.x + fx * hr * 0.6, h.y + fy * hr * 0.6, hr * 0.4, heading + 1, heading + 2.1); ctx.stroke(); }
+}
+
+function mountGame(root, opts) {
+  opts = opts || {};
+  const st = document.createElement('style');
+  st.textContent = `
+.wz{position:relative;width:100%;height:${opts.full ? '100vh' : '520px'};background:#101014;overflow:hidden;border-radius:${opts.full ? '0' : '16px'};font-family:system-ui,"Segoe UI",Tahoma,sans-serif;user-select:none;-webkit-user-select:none;touch-action:none;direction:ltr}
+@media(min-width:768px){.wz{height:${opts.full ? '100vh' : '600px'}}}
+.wz.wz-fixed{position:fixed;inset:0;height:100%;z-index:99999;border-radius:0}
+.wz:fullscreen{height:100vh;border-radius:0}
+.wz canvas.wz-main{position:absolute;inset:0;width:100%;height:100%;display:block;touch-action:none}
+.wz .lb{position:absolute;left:8px;top:6px;color:#fff;font-size:12px;line-height:1.35;text-shadow:0 1px 2px #000,0 0 3px #000;pointer-events:none;direction:rtl;text-align:right;min-width:150px}
+.wz .lb div{display:flex;justify-content:space-between;gap:12px}.wz .lb .me{color:#ffd54a}
+.wz .coin{position:absolute;right:8px;top:8px;display:flex;align-items:center;gap:0;pointer-events:none}
+.wz .coin canvas{width:38px;height:38px;position:relative;z-index:2;margin-right:-10px}
+.wz .coin span{background:rgba(12,14,30,.78);color:#fff;font-weight:800;font-size:18px;padding:5px 12px 5px 16px;border-radius:0 8px 8px 0;min-width:92px;text-align:center;border-radius:8px}
+.wz .mini{position:absolute;right:8px;top:52px;width:112px;height:86px;background:rgba(12,14,30,.62);border-radius:6px;pointer-events:none}
+.wz .timer{position:absolute;right:8px;top:144px;width:112px;box-sizing:border-box;text-align:center;color:#fff;font-weight:700;font-size:13px;padding:3px 0;border:2px solid #c35cf0;border-radius:6px;background:rgba(12,14,30,.7);pointer-events:none}
+.wz .pw{position:absolute;left:50%;bottom:10px;transform:translateX(-50%);display:flex;gap:8px;direction:ltr}
+.wz .pwb{position:relative;width:54px;height:54px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#243a8a,#0d1740);border:3px solid #2f4fc0;box-shadow:0 2px 8px rgba(0,0,0,.5);display:flex;align-items:center;justify-content:center;cursor:pointer;padding:0;color:#ffc933;font-size:25px;font-family:inherit}
+.wz .pwb:active{transform:scale(.92)}.wz .pwb.off{opacity:.45}.wz .pwb.on{border-color:#ffd54a;box-shadow:0 0 12px #ffd54a}
+.wz .pwb i{position:absolute;right:-3px;bottom:-3px;width:20px;height:20px;border-radius:50%;background:#fff;color:#0d1740;font-style:normal;font-weight:800;font-size:13px;line-height:20px;text-align:center}
+.wz .boost{position:absolute;right:14px;bottom:70px;width:92px;height:92px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#ffb23a,#e2570b);border:4px solid #fff3;box-shadow:0 4px 14px rgba(0,0,0,.5);color:#fff;font-size:38px;cursor:pointer;touch-action:none;padding:0;font-family:inherit}
+.wz .boost:active,.wz .boost.hold{transform:scale(.93);filter:brightness(1.15)}
+.wz .tb{position:absolute;left:50%;top:8px;transform:translateX(-50%);display:flex;gap:8px}
+.wz .rb{width:40px;height:40px;border-radius:50%;background:rgba(12,14,30,.72);border:2px solid #fff4;color:#fff;font-size:19px;cursor:pointer;padding:0;font-family:inherit}
+.wz .joy{position:absolute;width:112px;height:112px;margin:-56px 0 0 -56px;border-radius:50%;border:3px solid rgba(255,255,255,.45);background:rgba(255,255,255,.1);pointer-events:none;display:none}
+.wz .joy b{position:absolute;left:50%;top:50%;width:50px;height:50px;margin:-25px 0 0 -25px;border-radius:50%;background:rgba(255,255,255,.55);border:3px solid rgba(255,255,255,.9)}
+.wz .ov{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(8,10,22,.8);padding:12px;z-index:5;direction:rtl}
+.wz .panel{width:100%;max-width:430px;max-height:100%;overflow:auto;background:#1b2040;border-radius:18px;padding:16px;color:#fff;text-align:center;box-shadow:0 8px 30px rgba(0,0,0,.5)}
+.wz .panel h2{margin:0 0 6px;font-size:26px}.wz .panel p{margin:0 0 12px;font-size:14px;line-height:1.7;color:#cdd2f0}
+.wz .skins{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:14px}
+.wz .sk{border:3px solid transparent;border-radius:12px;background:#262c58;padding:6px 2px;color:#fff;font-size:12px;cursor:pointer;font-family:inherit;display:flex;flex-direction:column;align-items:center;gap:4px}
+.wz .sk.sel{border-color:#ffd54a;background:#303870}.wz .sk canvas{width:84px;height:36px}
+.wz .go{width:100%;border:0;border-radius:14px;padding:14px;font-size:20px;font-weight:800;background:linear-gradient(#ffd54a,#f0a010);color:#2a1a00;cursor:pointer;font-family:inherit;box-shadow:0 4px 0 #a86a00}
+.wz .go:active{transform:translateY(2px);box-shadow:0 2px 0 #a86a00}
+.wz .hint{margin-top:10px;font-size:12.5px;line-height:1.7;color:#aab0d8}
+`;
+  root.appendChild(st);
+  const wz = document.createElement('div'); wz.className = 'wz'; root.appendChild(wz);
+  wz.innerHTML = `<canvas class="wz-main"></canvas>
+<div class="lb"></div>
+<div class="coin"><canvas width="76" height="76"></canvas><span>0</span></div>
+<canvas class="mini" width="224" height="172"></canvas>
+<div class="timer">10:00</div>
+<div class="tb"><button class="rb" data-a="pause" aria-label="إيقاف">⏸</button><button class="rb" data-a="full" aria-label="ملء الشاشة">⛶</button></div>
+<div class="pw"><button class="pwb" data-p="magnet">🧲<i>1</i></button><button class="pwb" data-p="speed">⏫<i>2</i></button><button class="pwb" data-p="zoom">🔍<i>2</i></button></div>
+<button class="boost" aria-label="سرعة">⚡</button>
+<div class="joy"><b></b></div>
+<div class="ov"></div>`;
+  const cv = wz.querySelector('.wz-main'), ctx = cv.getContext('2d');
+  const lb = wz.querySelector('.lb'), scoreEl = wz.querySelector('.coin span'), timerEl = wz.querySelector('.timer');
+  const mini = wz.querySelector('.mini'), mctx = mini.getContext('2d');
+  const ov = wz.querySelector('.ov'), joy = wz.querySelector('.joy'), knob = joy.querySelector('b');
+  const boostBtn = wz.querySelector('.boost');
+  wz.querySelector('.coin canvas').getContext('2d').drawImage(makeCoin(), 0, 0, 76, 76);
+  const SP = sprites(), COIN = makeCoin(), POT = makePotion();
+  const pats = THEMES.map((t) => mk(140, 140, (c) => { c.fillStyle = t.bg; c.fillRect(0, 0, 140, 140); c.fillStyle = t.a; c.beginPath(); c.roundRect ? c.roundRect(10, 10, 120, 120, 26) : c.rect(10, 10, 120, 120); c.fill(); c.strokeStyle = t.b; c.lineWidth = 4; c.stroke(); c.fillStyle = t.b; c.globalAlpha = .5; c.beginPath(); c.arc(70, 70, 16, 0, 7); c.fill(); }));
+
+  let G = null, skin = 0, best = 0, theme = 0, screen = 'menu', cssW = 0, cssH = 0, uiAt = 0;
+  const input = { head: null, boost: false, mouse: false, joy: null };
+
+  function newWorm(id, bot, name, sk, len) {
+    const x = R(400, WORLD - 400), y = R(400, WORLD - 400), pts = [];
+    for (let i = 0; i < len; i++) pts.push({ x: x - i * 10, y });
+    return { id, bot, name, skin: sk, pts, heading: R(0, 6.28), tgt: R(0, 6.28), len, dead: false, respawn: 0, boost: false, aiT: 0, aiTarget: null, shield: bot ? 0 : 3 };
+  }
+  function food(x, y, big) {
+    const r = Math.random(), kind = big ? 1 : (r < 0.03 ? 'coin' : r < 0.05 ? 'pot' : Math.floor(R(0, SP.length)));
+    const k = kind === 'coin' ? 'coin' : kind === 'pot' ? 'pot' : 'n';
+    return { x: x == null ? R(MARGIN, WORLD - MARGIN) : x, y: y == null ? R(MARGIN, WORLD - MARGIN) : y, k, s: k === 'n' ? SP[kind === 1 && big ? Math.floor(R(0, SP.length)) : kind] : (k === 'coin' ? COIN : POT), sz: k === 'n' ? (big ? 46 : R(34, 44)) : 44, v: k === 'coin' ? 6 : k === 'pot' ? 4 : (big ? 2.5 : 1), ph: R(0, 6.28) };
+  }
+  function init() {
+    theme = Math.floor(R(0, THEMES.length));
+    const worms = [newWorm(0, false, 'أنت', skin, 18)];
+    for (let i = 0; i < BOTS; i++) worms.push(newWorm(i + 1, true, NAMES[i % NAMES.length], Math.floor(R(0, SKINS.length)), Math.floor(R(14, 50))));
+    worms[0].pts.forEach((p, i) => { p.x = WORLD / 2 - i * 10; p.y = WORLD / 2; }); worms[0].heading = worms[0].tgt = 0;
+    const foods = []; for (let i = 0; i < FOOD_N; i++) foods.push(food());
+    G = { worms, foods, score: 0, time: 0, left: ROUND, over: false, paused: false, pw: { magnet: 1, speed: 2, zoom: 2 }, fx: { magnet: 0, speed: 0, zoom: 0 }, pop: [] };
+    input.boost = false; input.head = null;
+    refreshPw();
+  }
+  function refreshPw() {
+    wz.querySelectorAll('.pwb').forEach((b) => { const k = b.dataset.p; b.querySelector('i').textContent = G ? G.pw[k] : 0; b.classList.toggle('off', !G || (G.pw[k] <= 0 && G.fx[k] <= 0)); b.classList.toggle('on', !!G && G.fx[k] > 0); });
+  }
+  const rad = (w) => 11 + Math.min(9, w.len / 45);
+  const spd = (w) => (150 - Math.min(40, w.len / 6)) * (w.boost ? 1.7 : 1);
+
+  function kill(w) {
+    for (let i = 0; i < w.pts.length; i += 2) if (G.foods.length < FOOD_N + 300) G.foods.push(food(w.pts[i].x + R(-12, 12), w.pts[i].y + R(-12, 12), true));
+    w.dead = true;
+    if (w.bot) { w.respawn = G.time + R(2, 5); w.pts = []; }
+    else { G.over = true; }
+  }
+  function aiUpdate(w, dt) {
+    w.aiT -= dt; const h = w.pts[0];
+    if (w.aiT <= 0) {
+      w.aiT = R(0.25, 0.7); let best = null, bd = 520;
+      for (const f of G.foods) { const d = Math.hypot(f.x - h.x, f.y - h.y) - f.v * 14; if (d < bd) { bd = d; best = f; } }
+      w.aiTarget = best ? { x: best.x, y: best.y } : { x: R(MARGIN, WORLD - MARGIN), y: R(MARGIN, WORLD - MARGIN) };
+    }
+    let a = Math.atan2(w.aiTarget.y - h.y, w.aiTarget.x - h.x);
+    if (Math.min(h.x, h.y, WORLD - h.x, WORLD - h.y) < 260) a = Math.atan2(WORLD / 2 - h.y, WORLD / 2 - h.x);
+    const lx = h.x + Math.cos(w.heading) * 70, ly = h.y + Math.sin(w.heading) * 70;
+    for (const o of G.worms) { if (o === w || o.dead) continue; for (let i = 0; i < o.pts.length; i += 3) { if (Math.abs(o.pts[i].x - lx) < 40 && Math.abs(o.pts[i].y - ly) < 40) { a = w.heading + 1.6; i = 1e9; } } }
+    w.tgt = a; w.boost = Math.random() < 0.002;
+  }
+  function turn(c, t, m) { let d = t - c; while (d > Math.PI) d -= 6.2832; while (d < -Math.PI) d += 6.2832; return c + C(d, -m, m); }
+  function step(dt) {
+    G.time += dt; G.left -= dt;
+    for (const k in G.fx) if (G.fx[k] > 0) { G.fx[k] -= dt; if (G.fx[k] <= 0) refreshPw(); }
+    const me = G.worms[0];
+    for (const w of G.worms) {
+      if (w.dead) { if (w.bot && G.time >= w.respawn) Object.assign(w, newWorm(w.id, true, w.name, Math.floor(R(0, SKINS.length)), Math.floor(R(14, 30)))); continue; }
+      if (w.bot) aiUpdate(w, dt);
+      else {
+        if (input.head != null) w.tgt = input.head;
+        w.shield = Math.max(0, w.shield - dt);
+        w.boost = (input.boost || G.fx.speed > 0) && w.len > 14;
+        if (w.boost && G.fx.speed <= 0) { w.len = Math.max(14, w.len - dt * 2.4); if (Math.random() < dt * 5) { const t = w.pts[w.pts.length - 1]; G.foods.push(food(t.x, t.y)); G.foods[G.foods.length - 1].v = 0.8; } }
+      }
+      w.heading = turn(w.heading, w.tgt, (w.bot ? 4 : 8) * dt);
+      const h = w.pts[0], s = spd(w) * dt;
+      h.x = C(h.x + Math.cos(w.heading) * s, MARGIN, WORLD - MARGIN); h.y = C(h.y + Math.sin(w.heading) * s, MARGIN, WORLD - MARGIN);
+      for (let i = 1; i < w.pts.length; i++) { const p = w.pts[i - 1], q = w.pts[i], dx = q.x - p.x, dy = q.y - p.y, d = Math.hypot(dx, dy) || 1e-4; if (d > 10) { q.x = p.x + dx / d * 10; q.y = p.y + dy / d * 10; } }
+      while (w.pts.length < Math.floor(w.len)) { const t = w.pts[w.pts.length - 1]; w.pts.push({ x: t.x, y: t.y }); }
+      while (w.pts.length > Math.floor(w.len)) w.pts.pop();
+    }
+    for (const w of G.worms) {
+      if (w.dead) continue; const h = w.pts[0], er = rad(w) + 14, mg = !w.bot && G.fx.magnet > 0;
+      for (let i = G.foods.length - 1; i >= 0; i--) {
+        const f = G.foods[i], d = Math.hypot(f.x - h.x, f.y - h.y);
+        if (mg && d < 190) { f.x += (h.x - f.x) * Math.min(1, dt * 7); f.y += (h.y - f.y) * Math.min(1, dt * 7); }
+        if (d < er) { G.foods.splice(i, 1); w.len += f.v * 0.9; if (!w.bot) { G.score += Math.round(f.v * 5); if (f.v >= 4) G.pop.push({ x: f.x, y: f.y, t: 1, v: '+' + Math.round(f.v * 5) }); } }
+      }
+    }
+    while (G.foods.length < FOOD_N) G.foods.push(food());
+    for (const w of G.worms) {
+      if (w.dead || w.shield > 0) continue; const h = w.pts[0];
+      for (const o of G.worms) {
+        if (o === w || o.dead) continue;
+        for (let i = 5; i < o.pts.length; i += 2) { const p = o.pts[i]; if (Math.abs(p.x - h.x) < 30 && Math.abs(p.y - h.y) < 30 && Math.hypot(p.x - h.x, p.y - h.y) < rad(w) * 0.55 + rad(o) * 0.7) { kill(w); i = 1e9; break; } }
+        if (w.dead) break;
+      }
+    }
+    if (G.left <= 0 && !G.over) G.over = 'time';
+    if (me.dead || G.over) { if (G.over) end(); }
+  }
+  function end() {
+    if (screen === 'over') return; best = Math.max(best, G.score); screen = 'over';
+    showMenu(G.over === 'time' ? 'انتهى الوقت!' : 'خلصت الجولة!', true);
+  }
+  function showMenu(title, again) {
+    ov.style.display = 'flex';
+    ov.innerHTML = `<div class="panel"><h2>${title}</h2><p>${again ? `نقاطك: ${G.score} · أفضل نتيجة: ${best}` : 'كُل الأكل وكبّر دودتك وابعد عن أجسام الدود التاني. كل الأشكال مجانية:'}</p><div class="skins">${SKINS.map((s, i) => `<button class="sk ${i === skin ? 'sel' : ''}" data-s="${i}"><canvas width="168" height="72"></canvas>${s.name}</button>`).join('')}</div><button class="go">${again ? 'العب تاني' : 'ابدأ اللعب'}</button><div class="hint">اسحب بصباعك في أي مكان على الشاشة عشان توجّه الدودة. زرار ⚡ للسرعة. على الكمبيوتر: الماوس والكليك أو الأسهم والمسافة.</div></div>`;
+    ov.querySelectorAll('.sk canvas').forEach((c, i) => { const x = c.getContext('2d'), pts = []; for (let k = 0; k < 9; k++) pts.push({ x: 140 - k * 14, y: 36 }); drawWorm(x, pts, 13, SKINS[i], 0, 0); });
+    ov.querySelectorAll('.sk').forEach((b) => b.onclick = () => { skin = +b.dataset.s; showMenu(title, again); });
+    ov.querySelector('.go').onclick = () => { init(); screen = 'play'; ov.style.display = 'none'; };
+  }
+  function resize() { const dpr = Math.min(2, window.devicePixelRatio || 1); cssW = wz.clientWidth; cssH = wz.clientHeight; cv.width = Math.round(cssW * dpr); cv.height = Math.round(cssH * dpr); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); }
+  new ResizeObserver(resize).observe(wz); resize();
+
+  const view = () => { const zm = G && G.fx.zoom > 0 ? 0.68 : 1; return Math.max(0.6, Math.min(cssW, cssH) / 520) * zm; };
+  function camOf() { const h = G.worms[0].pts[0] || { x: WORLD / 2, y: WORLD / 2 }, s = view(); return { s, x: C(h.x - cssW / 2 / s, 0, WORLD - cssW / s), y: C(h.y - cssH / 2 / s, 0, WORLD - cssH / s) }; }
+  function aimFrom(cx, cy) { const cam = camOf(), h = G.worms[0].pts[0]; const hx = (h.x - cam.x) * cam.s, hy = (h.y - cam.y) * cam.s; const dx = cx - hx, dy = cy - hy; if (Math.hypot(dx, dy) > 10) input.head = Math.atan2(dy, dx); }
+  const local = (e) => { const r = cv.getBoundingClientRect(); return { x: e.clientX - r.left, y: e.clientY - r.top }; };
+  cv.addEventListener('pointerdown', (e) => {
+    if (!G || screen !== 'play') return; cv.setPointerCapture && cv.setPointerCapture(e.pointerId); const p = local(e);
+    if (e.pointerType === 'mouse') { input.mouse = true; input.boost = true; aimFrom(p.x, p.y); }
+    else { input.joy = { id: e.pointerId, x: p.x, y: p.y }; joy.style.display = 'block'; joy.style.left = p.x + 'px'; joy.style.top = p.y + 'px'; knob.style.transform = 'translate(0,0)'; }
+  });
+  cv.addEventListener('pointermove', (e) => {
+    if (!G || screen !== 'play') return; const p = local(e);
+    if (e.pointerType === 'mouse') { input.mouse = true; aimFrom(p.x, p.y); }
+    else if (input.joy && input.joy.id === e.pointerId) { const dx = p.x - input.joy.x, dy = p.y - input.joy.y, d = Math.hypot(dx, dy); if (d > 6) input.head = Math.atan2(dy, dx); const k = Math.min(d, 45) / (d || 1); knob.style.transform = `translate(${dx * k}px,${dy * k}px)`; }
+  });
+  const up = (e) => { if (e.pointerType === 'mouse') input.boost = false; else if (input.joy && input.joy.id === e.pointerId) { input.joy = null; joy.style.display = 'none'; } };
+  cv.addEventListener('pointerup', up); cv.addEventListener('pointercancel', up);
+  const bd = (e) => { e.preventDefault(); input.boost = true; boostBtn.classList.add('hold'); }, bu = () => { input.boost = false; boostBtn.classList.remove('hold'); };
+  boostBtn.addEventListener('pointerdown', bd); boostBtn.addEventListener('pointerup', bu); boostBtn.addEventListener('pointerleave', bu); boostBtn.addEventListener('pointercancel', bu);
+  const keyDir = { arrowup: -1.5708, w: -1.5708, arrowdown: 1.5708, s: 1.5708, arrowleft: 3.1416, a: 3.1416, arrowright: 0, d: 0 };
+  window.addEventListener('keydown', (e) => { if (!G || screen !== 'play') return; const k = e.key.toLowerCase(); if (k in keyDir) { input.head = keyDir[k]; e.preventDefault(); } else if (k === ' ') { input.boost = true; e.preventDefault(); } });
+  window.addEventListener('keyup', (e) => { if (e.key === ' ') input.boost = false; });
+  wz.querySelectorAll('.pwb').forEach((b) => b.onclick = () => { if (!G || screen !== 'play') return; const k = b.dataset.p; if (G.fx[k] > 0 || G.pw[k] <= 0) return; G.pw[k]--; G.fx[k] = k === 'speed' ? 5 : k === 'magnet' ? 10 : 12; refreshPw(); });
+  wz.querySelector('[data-a=pause]').onclick = () => { if (!G || screen !== 'play') return; G.paused = !G.paused; wz.querySelector('[data-a=pause]').textContent = G.paused ? '▶' : '⏸'; };
+  function isFull() { return document.fullscreenElement === wz || wz.classList.contains('wz-fixed'); }
+  wz.querySelector('[data-a=full]').onclick = async () => {
+    if (isFull()) { if (document.fullscreenElement) { try { await document.exitFullscreen(); } catch (e) {} } wz.classList.remove('wz-fixed'); return; }
+    try { await wz.requestFullscreen(); } catch (e) { wz.classList.add('wz-fixed'); }
+  };
+
+  function frame(now) {
+    requestAnimationFrame(frame);
+    if (!G) { ctx.fillStyle = '#101014'; ctx.fillRect(0, 0, cssW, cssH); return; }
+    const dt = Math.min(0.05, (now - (frame.last || now)) / 1000); frame.last = now;
+    if (screen === 'play' && !G.paused) step(dt);
+    const cam = camOf(), s = cam.s, me = G.worms[0], t = now / 1000;
+    ctx.fillStyle = THEMES[theme].bg; ctx.fillRect(0, 0, cssW, cssH);
+    ctx.save(); ctx.scale(s, s); ctx.translate(-cam.x, -cam.y);
+    ctx.fillStyle = ctx.createPattern(pats[theme], 'repeat'); ctx.fillRect(cam.x, cam.y, cssW / s, cssH / s);
+    ctx.strokeStyle = 'rgba(255,60,60,.7)'; ctx.lineWidth = 8; ctx.strokeRect(MARGIN - 40, MARGIN - 40, WORLD - 2 * (MARGIN - 40), WORLD - 2 * (MARGIN - 40));
+    const vw = cssW / s, vh = cssH / s;
+    for (const f of G.foods) {
+      if (f.x < cam.x - 40 || f.x > cam.x + vw + 40 || f.y < cam.y - 40 || f.y > cam.y + vh + 40) continue;
+      const bob = Math.sin(t * 2.5 + f.ph) * 2.5, sz = f.sz;
+      if (f.k !== 'n') { ctx.shadowColor = f.k === 'coin' ? '#ffd54a' : '#9b6bff'; ctx.shadowBlur = 16; }
+      ctx.drawImage(f.s, f.x - sz / 2, f.y - sz / 2 + bob, sz, sz); ctx.shadowBlur = 0;
+    }
+    for (const w of G.worms) {
+      if (w.dead || w === me) continue; drawWorm(ctx, w.pts, rad(w), SKINS[w.skin], w.heading, t);
+      ctx.fillStyle = '#fff'; ctx.font = 'bold 13px system-ui'; ctx.textAlign = 'center'; ctx.lineWidth = 3; ctx.strokeStyle = 'rgba(0,0,0,.6)'; ctx.strokeText(w.name, w.pts[0].x, w.pts[0].y - rad(w) - 12); ctx.fillText(w.name, w.pts[0].x, w.pts[0].y - rad(w) - 12);
+    }
+    if (!me.dead) {
+      if (me.shield > 0) ctx.globalAlpha = 0.55 + 0.4 * Math.sin(t * 14);
+      drawWorm(ctx, me.pts, rad(me), SKINS[me.skin], me.heading, t); ctx.globalAlpha = 1;
+      if (screen === 'play') { const h = me.pts[0], a = me.tgt, ax = h.x + Math.cos(a) * 90, ay = h.y + Math.sin(a) * 90; ctx.save(); ctx.translate(ax, ay); ctx.rotate(a); ctx.fillStyle = '#ff9a1f'; ctx.strokeStyle = '#fff6'; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(16, 0); ctx.lineTo(-10, -12); ctx.lineTo(-4, 0); ctx.lineTo(-10, 12); ctx.closePath(); ctx.fill(); ctx.stroke(); ctx.restore(); }
+    }
+    for (let i = G.pop.length - 1; i >= 0; i--) { const p = G.pop[i]; p.t -= dt; p.y -= 30 * dt; if (p.t <= 0) { G.pop.splice(i, 1); continue; } ctx.globalAlpha = p.t; ctx.fillStyle = '#fff'; ctx.font = 'bold 18px system-ui'; ctx.textAlign = 'center'; ctx.fillText(p.v, p.x, p.y); ctx.globalAlpha = 1; }
+    ctx.restore();
+    if (now > uiAt) {
+      uiAt = now + 250; scoreEl.textContent = G.score.toLocaleString('en');
+      const m = Math.max(0, Math.ceil(G.left)); timerEl.textContent = Math.floor(m / 60) + ':' + String(m % 60).padStart(2, '0');
+      const rows = G.worms.filter((w) => !w.dead).sort((a, b) => b.len - a.len), live = rows.length;
+      let html = '<div style="opacity:.85"><span>أكبر اللاعبين (في الساحة: ' + live + ')</span></div>';
+      rows.slice(0, 8).forEach((w, i) => { html += `<div class="${w === me ? 'me' : ''}"><span>${i + 1}. ${w.name}</span><span>${Math.floor(w.len)}</span></div>`; });
+      const idx = rows.indexOf(me); if (idx >= 8) html += `<div class="me"><span>${idx + 1}. أنت</span><span>${Math.floor(me.len)}</span></div>`;
+      lb.innerHTML = html;
+      mctx.clearRect(0, 0, 224, 172); const k = 224 / WORLD;
+      mctx.fillStyle = 'rgba(255,255,255,.85)'; for (const f of G.foods) mctx.fillRect(f.x * k, f.y * k, 2.5, 2.5);
+      for (const w of G.worms) if (!w.dead && w !== me) { mctx.fillStyle = '#ff5a5a'; mctx.beginPath(); mctx.arc(w.pts[0].x * k, w.pts[0].y * 172 / WORLD, 3.5, 0, 7); mctx.fill(); }
+      if (!me.dead) { mctx.fillStyle = '#35e65a'; mctx.beginPath(); mctx.arc(me.pts[0].x * k, me.pts[0].y * 172 / WORLD, 5, 0, 7); mctx.fill(); }
+    }
+  }
+  init(); G.paused = false; showMenu('الدودة الجائعة', false); requestAnimationFrame(frame);
+}
+
+mountGame(document.getElementById("app"),{full:true});</script></body></html>
